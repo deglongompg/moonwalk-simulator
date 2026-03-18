@@ -584,6 +584,11 @@ input[type=number] { -moz-appearance: textfield; }
       <label class="lbl" data-i18n="lbl_step_goal">Objectif de pas quotidien</label>
       <div id="step-goals" class="flex-wrap" style="margin-bottom:8px"></div>
       <div id="bonus-rate" style="font-size:11px;margin-bottom:22px"></div>
+      <div style="margin-bottom:22px">
+        <label class="lbl"><span data-i18n="lbl_challenge_dur">Durée du défi</span> : <span id="challenge-days-display" class="mono" style="color:var(--neon);font-size:22px;font-weight:700"></span> <span data-i18n="days_unit" style="color:var(--text-mute);font-size:13px">jours</span></label>
+        <input type="range" id="challenge-days" min="2" max="90" value="7" oninput="updateF2P()" style="margin-bottom:10px">
+        <div id="challenge-dur-presets" class="flex-wrap"></div>
+      </div>
       <div class="grid-2">
         <div>
           <label class="lbl"><span data-i18n="lbl_challenges">Défis simultanés</span> : <span id="nb-games-display" class="mono" style="color:var(--neon);font-size:22px;font-weight:700"></span></label>
@@ -734,6 +739,8 @@ const I18N = {
     tab_f2p: '🆓 Commencer', tab_sim: '💰 Avancé', tab_mig: '📈 Projections',
     how_title: 'Comment ça marche ?',
     sec_config: 'Configure ta simulation', lbl_step_goal: 'Objectif de pas quotidien',
+    lbl_challenge_dur: 'Durée du défi', days_unit: 'jours',
+    challenge_dur_presets: [{l:'2j',v:2},{l:'5j',v:5},{l:'7j',v:7},{l:'14j',v:14},{l:'30j',v:30},{l:'60j',v:60},{l:'90j',v:90}],
     lbl_challenges: 'Défis simultanés', lbl_stake: 'Mise par défi',
     sec_progression: 'Progression Tier 1', sec_projection: 'Projection 12 mois',
     details_table: 'Voir le tableau détaillé',
@@ -767,7 +774,7 @@ const I18N = {
     leagues: {Bronze:'Bronze',Argent:'Argent',Or:'Or',Platine:'Platine',Diamant:'Diamant',"Tungstène":'Tungstène'},
     steps: [
       {t:"Télécharge l'app", d:"Connecte Google Fit, Apple Health, Fitbit ou Garmin."},
-      {t:"Rejoins des défis de pas", d:"3K à 12K pas/jour, 5 à 30 jours. Mise min : 200 MF ou 1 USDC. Jusqu'à 20 défis/jour !"},
+      {t:"Rejoins des défis de pas", d:"3K à 12K pas/jour, 2 à 90 jours. Mise min : 200 MF ou 1 USDC. Jusqu'à 20 défis/jour !"},
       {t:"Marche et récupère ta mise", d:"98-99% réussissent. Tu récupères ta mise + 1-2% de bonus. Plus de défis = plus d'XP."},
       {t:"Niveau 10 → MF Games", d:"Dès le niveau 10 Bronze, accès aux MF Games hebdomadaires gratuits."},
       {t:"Gagne du $MF chaque semaine", d:"236 000 tokens distribués par ligue/semaine. Plus tu montes, plus tu gagnes."},
@@ -780,6 +787,8 @@ const I18N = {
     tab_f2p: '🆓 Get Started', tab_sim: '💰 Advanced', tab_mig: '📈 Projections',
     how_title: 'How does it work?',
     sec_config: 'Configure your simulation', lbl_step_goal: 'Daily step goal',
+    lbl_challenge_dur: 'Challenge duration', days_unit: 'days',
+    challenge_dur_presets: [{l:'2d',v:2},{l:'5d',v:5},{l:'7d',v:7},{l:'14d',v:14},{l:'30d',v:30},{l:'60d',v:60},{l:'90d',v:90}],
     lbl_challenges: 'Simultaneous challenges', lbl_stake: 'Stake per challenge',
     sec_progression: 'Tier 1 Progression', sec_projection: '12-month Projection',
     details_table: 'View detailed table',
@@ -812,7 +821,7 @@ const I18N = {
     leagues: {Bronze:'Bronze',Argent:'Silver',Or:'Gold',Platine:'Platinum',Diamant:'Diamond',"Tungstène":'Tungsten'},
     steps: [
       {t:"Download the app", d:"Connect Google Fit, Apple Health, Fitbit or Garmin."},
-      {t:"Join step challenges", d:"3K to 12K steps/day, 5 to 30 days. Min stake: 200 MF or 1 USDC. Up to 20 challenges/day!"},
+      {t:"Join step challenges", d:"3K to 12K steps/day, 2 to 90 days. Min stake: 200 MF or 1 USDC. Up to 20 challenges/day!"},
       {t:"Walk and get your stake back", d:"98-99% succeed. Get your stake back + 1-2% bonus. More challenges = more XP."},
       {t:"Level 10 → MF Games", d:"At level 10 Bronze, access free weekly MF Games."},
       {t:"Earn $MF every week", d:"236,000 tokens distributed per league/week. The higher you go, the more you earn."},
@@ -959,7 +968,7 @@ Chart.defaults.plugins.legend.labels.padding=16;
 
 // ═══════ STATE ═══════
 let state = {
-  tab:"f2p", price:0.013, stepGoal:5000, stakeUSD:1, nbGames:10,
+  tab:"f2p", price:0.013, stepGoal:5000, stakeUSD:1, nbGames:10, challengeDays:7,
   locked:16348, buy:0, dur:365, scenario:"moderate", projWeeks:26,
   active:{Bronze:true,Argent:true,Or:true,Platine:false,Diamant:false,"Tungstène":false}
 };
@@ -1004,23 +1013,30 @@ function initF2P(){
 
 function updateF2P(){
   state.nbGames=parseInt(document.getElementById('nb-games').value);
+  state.challengeDays=parseInt(document.getElementById('challenge-days').value);
   const br=state.stepGoal>=10000?0.02:0.01;
   const wb=state.stakeUSD*br*state.nbGames;
   const td=state.stakeUSD*state.nbGames;
+  const challPerWeek=7/state.challengeDays; // how many challenge cycles per week
 
   document.getElementById('nb-games-display').textContent=state.nbGames;
+  document.getElementById('challenge-days-display').textContent=state.challengeDays;
+  // Challenge duration presets
+  const durPresets=T('challenge_dur_presets')||[];
+  const dpEl=document.getElementById('challenge-dur-presets');
+  if(dpEl){dpEl.innerHTML=durPresets.map(p=>`<button class="pill ${state.challengeDays===p.v?'on':''}" onclick="state.challengeDays=${p.v};document.getElementById('challenge-days').value=${p.v};updateF2P()">${p.l}</button>`).join('');}
   document.getElementById('bonus-rate').innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px">${T('bonus_prefix')} : <span class="badge" style="background:${state.stepGoal>=10000?'var(--green-dim)':'rgba(196,212,224,0.04)'};color:${state.stepGoal>=10000?'var(--green)':'var(--text-mute)'};font-weight:700">${state.stepGoal>=10000?'~2%':'~1%'} ${T('per_challenge')}</span></span>`;
   document.getElementById('deposit-info').innerHTML=`${T('deposit_prefix')} : <span class="mono" style="color:var(--amber);font-weight:700">$${td}</span> <span style="color:var(--text-ghost)">${T('deposit_suffix')}</span>`;
   rebuildPills();
 
   const mfGames = Math.round(gR("Bronze",0));
   document.getElementById('f2p-instant').innerHTML=`
-    <div class="kpi"><div class="kpi-label">${T('kpi_bonus')}</div><div class="kpi-value" style="color:var(--amber)">+$${wb.toFixed(2)}</div><div class="kpi-sub">${state.nbGames}x ${Math.round(br*100)}% ${T('kpi_per_challenge')}</div></div>
+    <div class="kpi"><div class="kpi-label">${T('kpi_bonus')}</div><div class="kpi-value" style="color:var(--amber)">+$${(wb*challPerWeek).toFixed(2)}</div><div class="kpi-sub">${state.nbGames}x ${Math.round(br*100)}% × ${challPerWeek.toFixed(1)} ${T('kpi_per_challenge')}</div></div>
     <div class="kpi"><div class="kpi-label">${T('kpi_xp')}</div><div class="kpi-value" style="color:var(--purple)">x${state.nbGames}</div><div class="kpi-sub">${T('kpi_parallel')}</div></div>
     <div class="kpi"><div class="kpi-label">${T('kpi_mfgames')}</div><div class="kpi-value" style="color:var(--neon)">${mfGames} MF</div><div class="kpi-sub">~$${(mfGames*state.price).toFixed(2)}/${T('weeks_unit')}</div></div>
   `;
 
-  const spd=Math.min(5,state.nbGames/5);
+  const spd=Math.min(5,(state.nbGames*challPerWeek)/5);
   const stages=[{lg:"Bronze",wk:"0-8",lgs:["Bronze"]},{lg:"Argent",wk:"4-12",lgs:["Bronze","Argent"]},{lg:"Or",wk:"12-25",lgs:["Bronze","Argent","Or"]},{lg:"Platine",wk:"25+",lgs:["Bronze","Argent","Or","Platine"]}];
   document.getElementById('progression-cards').innerHTML=stages.map(st=>{
     const c=CL[st.lg];let tMF=0;st.lgs.forEach(l=>{tMF+=gR(l,0);});
@@ -1034,16 +1050,16 @@ function updateF2P(){
   }).join('');
 
   // Table + chart
-  let tMF=0,tGB=0,xp=0;const xpG=Math.min(state.stepGoal*.008,60)*5;
+  let tMF=0,tGB=0,xp=0;const xpPerDay=Math.min(state.stepGoal*.008,60)*5;const xpG=xpPerDay*state.challengeDays;
   let rows=[],cL=[],cMF=[],cUSD=[];
   for(let w=1;w<=52;w++){
-    xp+=xpG*state.nbGames;let lg="Bronze",can=xp>=2000;
+    xp+=xpG*state.nbGames*challPerWeek;let lg="Bronze",can=xp>=2000;
     if(xp>50000)lg="Argent";if(xp>150000)lg="Or";if(xp>400000)lg="Platine";
     let wMF=0;if(can){const li=LG.indexOf(lg);for(let i=0;i<=li;i++)wMF+=gR(LG[i],0);}
-    tMF+=wMF;tGB+=wb;
+    tMF+=wMF;tGB+=wb*challPerWeek;
     const cumul=(tMF*state.price)+tGB;
     if(w%4===0||w===1){cL.push(w===1?'S1':'M'+Math.ceil(w/4.33));cMF.push(Math.round(wMF));cUSD.push(parseFloat(cumul.toFixed(2)));}
-    if(w===1||w%4===0||w===52)rows.push({label:w===1?T('week1'):`${T('month')} ${Math.ceil(w/4.33)}`,lg,can,wMF:Math.round(wMF),wUsd:(wMF*state.price).toFixed(2),bonus:wb.toFixed(2),total:cumul.toFixed(2)});
+    if(w===1||w%4===0||w===52)rows.push({label:w===1?T('week1'):`${T('month')} ${Math.ceil(w/4.33)}`,lg,can,wMF:Math.round(wMF),wUsd:(wMF*state.price).toFixed(2),bonus:(wb*challPerWeek).toFixed(2),total:cumul.toFixed(2)});
   }
   updateF2PChart(cL,cMF,cUSD);
 

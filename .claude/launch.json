@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "moonwalk-dev",
-      "runtimeExecutable": "/Users/damiengheza/.nvm/versions/node/v24.14.0/bin/node",
-      "runtimeArgs": ["/Users/damiengheza/Desktop/Moonwalk/.claude/server.mjs"],
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "/Users/damiengheza/Desktop/Moonwalk"],
       "port": 8080
     }
   ]
