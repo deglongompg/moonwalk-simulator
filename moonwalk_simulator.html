@@ -57,7 +57,7 @@ body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  min-height: auto;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -656,7 +656,7 @@ input[type=number] { -moz-appearance: textfield; }
       <div class="sec" data-i18n="sec_params">Paramètres</div>
       <div class="grid-4">
         <div><label class="lbl" data-i18n="lbl_price">Prix $MF</label><input type="number" class="input" id="price-input" step="0.001" value="0.013" onchange="updateSim()"></div>
-        <div><label class="lbl" data-i18n="lbl_locked">Tokens lockés</label><input type="number" class="input" id="locked-input" step="100" value="16348" onchange="updateSim()"></div>
+        <div><label class="lbl" data-i18n="lbl_locked">Tokens lockés</label><input type="number" class="input" id="locked-input" step="100" value="0" onchange="updateSim()"></div>
         <div><label class="lbl" data-i18n="lbl_duration">Durée lock</label><select class="input" id="dur-input" onchange="updateSim()"><option value="30" data-i18n="dur_30">30j (x1.08)</option><option value="90" data-i18n="dur_90">90j (x1.25)</option><option value="180" data-i18n="dur_180">6 mois (x1.5)</option><option value="365" selected data-i18n="dur_365">1 an (x2.0)</option></select></div>
         <div><label class="lbl" data-i18n="lbl_weighted">Pondéré</label><div class="mono" id="weighted-display" style="padding:11px 14px;background:rgba(45,212,191,0.05);border-radius:var(--radius-sm);color:var(--neon);font-weight:700;font-size:14px;text-align:center;border:1px solid rgba(45,212,191,0.12)"></div></div>
       </div>
@@ -969,7 +969,7 @@ Chart.defaults.plugins.legend.labels.padding=16;
 // ═══════ STATE ═══════
 let state = {
   tab:"f2p", price:0.013, stepGoal:5000, stakeUSD:1, nbGames:10, challengeDays:7,
-  locked:16348, buy:0, dur:365, scenario:"moderate", projWeeks:26,
+  locked:0, buy:0, dur:365, scenario:"moderate", projWeeks:26,
   active:{Bronze:true,Argent:true,Or:true,Platine:false,Diamant:false,"Tungstène":false}
 };
 let f2pChart=null, migChart=null;
@@ -1299,6 +1299,19 @@ function updateMigChart(data) {
 initF2P();
 updateSim();
 updateMigration();
+
+// ═══════ AUTO-RESIZE for iframe embedding (Wix, etc.) ═══════
+(function(){
+  function sendHeight(){
+    const h=document.documentElement.scrollHeight;
+    window.parent.postMessage({type:'resize',height:h},'*');
+  }
+  sendHeight();
+  new ResizeObserver(sendHeight).observe(document.body);
+  window.addEventListener('load',sendHeight);
+  // Fallback poll for dynamic content
+  setInterval(sendHeight,1000);
+})();
 </script>
 </body>
 </html>
