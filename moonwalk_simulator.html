@@ -1188,12 +1188,14 @@ function rebuildPills(){
 // ═══════ SIM ═══════
 function updateSim(){
   state.price=parseFloat(document.getElementById('price-input').value)||0.013;
-  state.locked=parseInt(document.getElementById('locked-input').value)||0;
-  state.dur=parseInt(document.getElementById('dur-input').value);
   state.buy=parseInt(document.getElementById('buy-slider').value);
+  // Auto-sync: locked tokens = slider value (what you invest = what you lock)
+  state.locked=state.buy;
+  document.getElementById('locked-input').value=state.locked;
+  state.dur=parseInt(document.getElementById('dur-input').value);
   const mult=MULTS[state.dur]||2;
-  const weighted=(state.locked+state.buy)*mult;
-  const baseWt=state.locked*mult;
+  const weighted=state.locked*mult;
+  const baseWt=0; // base = before investment
   const inv=state.buy*state.price;
 
   document.getElementById('buy-display').innerHTML=`+${fmt(state.buy)} <span style="font-size:22px;font-weight:400;opacity:0.5">MF</span>`;
