@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moonwalk Fitness — Simulateur de gains $MF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+/* ════════════════════════════════════════════════
+   MOONWALK FITNESS — LUNAR FUTURIST DESIGN v11
+   ════════════════════════════════════════════════ */
+
+:root {
+  --void: #020510;
+  --bg: #040812;
+  --bg-raised: #080E1C;
+  --lunar: #C4D4E0;
+  --lunar-glow: rgba(196,212,224,0.15);
+  --surface: rgba(8,14,28,0.82);
+  --surface-light: rgba(14,22,42,0.65);
+  --surface-holo: rgba(10,18,35,0.75);
+  --border: rgba(196,212,224,0.06);
+  --border-light: rgba(196,212,224,0.04);
+  --border-holo: rgba(45,212,191,0.12);
+  --neon: #2DD4BF;
+  --neon-dim: rgba(45,212,191,0.08);
+  --neon-glow: rgba(45,212,191,0.35);
+  --neon-bright: #5EEAD4;
+  --cyan: #06B6D4;
+  --cyan-glow: rgba(6,182,212,0.25);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.08);
+  --amber: #F59E0B;
+  --amber-dim: rgba(245,158,11,0.08);
+  --amber-glow: rgba(245,158,11,0.2);
+  --purple: #A78BFA;
+  --purple-dim: rgba(167,139,250,0.08);
+  --purple-glow: rgba(167,139,250,0.2);
+  --silver: #CBD5E1;
+  --text: #D6DEE8;
+  --text-bright: #F1F5F9;
+  --text-dim: #8B9DB5;
+  --text-mute: #576B83;
+  --text-ghost: #3B4F66;
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, .sec, .tab-btn, .pill, .cta, .kpi-label { font-family: 'Space Grotesk', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(45,212,191,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.3); }
+
+/* ══════ STARFIELD CANVAS ══════ */
+#starfield {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+
+/* ══════ SCAN LINES ══════ */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    rgba(196,212,224,0.008) 2px, rgba(196,212,224,0.008) 4px
+  );
+  opacity: 0.5;
+}
+
+/* ── Noise ── */
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.012;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ══════ MOON ══════ */
+.moon-container {
+  position: fixed; top: -80px; right: -60px; width: 320px; height: 320px;
+  pointer-events: none; z-index: 0;
+  animation: moon-float 20s ease-in-out infinite;
+}
+.moon {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    rgba(220,230,240,0.12) 0%,
+    rgba(196,212,224,0.06) 30%,
+    rgba(140,160,180,0.03) 60%,
+    transparent 80%
+  );
+  box-shadow:
+    0 0 60px rgba(196,212,224,0.08),
+    0 0 120px rgba(196,212,224,0.04),
+    inset 0 0 40px rgba(196,212,224,0.03);
+}
+.moon-crater {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,0,0,0.15), transparent 70%);
+  border: 1px solid rgba(255,255,255,0.02);
+}
+@keyframes moon-float {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  25% { transform: translate(-8px, 12px) rotate(0.5deg); }
+  75% { transform: translate(6px, -8px) rotate(-0.3deg); }
+}
+
+/* ══════ AMBIENT AURA ══════ */
+.aura {
+  position: fixed; pointer-events: none; z-index: 0; border-radius: 50%;
+  filter: blur(80px);
+}
+.aura-1 { top: 5%; left: 10%; width: 400px; height: 400px; background: rgba(45,212,191,0.03); animation: aura-pulse 15s ease-in-out infinite; }
+.aura-2 { bottom: 10%; right: 5%; width: 350px; height: 350px; background: rgba(167,139,250,0.025); animation: aura-pulse 18s ease-in-out infinite reverse; }
+.aura-3 { top: 40%; left: -5%; width: 300px; height: 300px; background: rgba(6,182,212,0.02); animation: aura-pulse 22s ease-in-out infinite 3s; }
+@keyframes aura-pulse {
+  0%,100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.15); }
+}
+
+.wrap { max-width: 940px; margin: 0 auto; padding: 12px 20px; position: relative; z-index: 1; }
+
+/* ══════ KEYFRAMES ══════ */
+@keyframes fadeUp { from { opacity:0; transform:translateY(28px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes neon-glow { 0%,100%{box-shadow:0 0 20px rgba(45,212,191,0.12),0 0 60px rgba(45,212,191,0.05)} 50%{box-shadow:0 0 30px rgba(45,212,191,0.25),0 0 80px rgba(45,212,191,0.08)} }
+@keyframes float { 0%,100%{transform:translateY(0)} 33%{transform:translateY(-12px)} 66%{transform:translateY(-6px)} }
+@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(45,212,191,0.4)} 70%{box-shadow:0 0 0 18px rgba(45,212,191,0)} 100%{box-shadow:0 0 0 0 rgba(45,212,191,0)} }
+@keyframes holo-border { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes bar-fill { from { width: 0; } }
+@keyframes flicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.8} 94%{opacity:1} 96%{opacity:0.9} 97%{opacity:1} }
+@keyframes data-scan { 0%{background-position:0 0} 100%{background-position:0 200%} }
+
+.fade { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+.fade-1 { animation-delay: 0.1s; }
+.fade-2 { animation-delay: 0.2s; }
+.fade-3 { animation-delay: 0.3s; }
+.fade-4 { animation-delay: 0.4s; }
+.fade-5 { animation-delay: 0.5s; }
+
+/* ══════ GLASS CARDS ══════ */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  margin-bottom: 22px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s cubic-bezier(0.2,0,0,1), box-shadow 0.25s ease;
+}
+/* Top-left light reflection */
+.glass::before {
+  content: ''; position: absolute; top: -1px; left: -1px; right: 50%; bottom: 50%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(196,212,224,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.glass:hover {
+  border-color: rgba(196,212,224,0.1);
+  box-shadow: 0 0 40px rgba(0,0,0,0.3);
+}
+
+.glass-light {
+  background: var(--surface-light);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  position: relative;
+}
+
+/* ── Holographic Border Card ── */
+.glass-holo {
+  background: var(--surface-holo);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  margin-bottom: 22px;
+  position: relative;
+  overflow: hidden;
+}
+.glass-holo::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(45,212,191,0.3) 0%,
+    rgba(6,182,212,0.15) 25%,
+    rgba(167,139,250,0.25) 50%,
+    rgba(196,212,224,0.15) 75%,
+    rgba(45,212,191,0.3) 100%
+  );
+  background-size: 300% 300%;
+  animation: holo-border 8s ease infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+/* Data scan overlay */
+.glass-holo::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, transparent 0%, rgba(45,212,191,0.02) 50%, transparent 100%);
+  background-size: 100% 200%;
+  animation: data-scan 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ── Card Hover ── */
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.2,0,0,1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(45,212,191,0.05);
+}
+
+/* ══════ BUTTONS ══════ */
+.pill {
+  padding: 12px 20px; font-size: 13px; font-weight: 700; border-radius: var(--radius-md);
+  min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--border); background: rgba(196,212,224,0.02);
+  color: var(--text-mute); cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  transition: all 0.2s cubic-bezier(0.2,0,0,1); opacity: 0.5;
+  position: relative;
+}
+.pill:hover { opacity: 0.85; transform: translateY(-1px); border-color: rgba(196,212,224,0.1); }
+.pill:active { transform: translateY(0) scale(0.97); }
+
+.pill.on {
+  border-color: var(--neon); background: var(--neon-dim); color: var(--neon); opacity: 1;
+  box-shadow: 0 0 20px rgba(45,212,191,0.1), inset 0 0 20px rgba(45,212,191,0.04);
+}
+.pill.on-amber {
+  border-color: var(--amber); background: var(--amber-dim); color: var(--amber); opacity: 1;
+  box-shadow: 0 0 20px rgba(245,158,11,0.1), inset 0 0 20px rgba(245,158,11,0.04);
+}
+.pill.sm { padding: 6px 13px; font-size: 11px; }
+
+/* ══════ CTA ══════ */
+.cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 18px 48px; font-size: 16px; font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif; color: var(--void); text-decoration: none;
+  border-radius: var(--radius-lg); border: none; cursor: pointer;
+  background: linear-gradient(135deg, #2DD4BF 0%, #06B6D4 40%, #0EA5E9 80%, #2DD4BF 100%);
+  background-size: 300% 300%; animation: shimmer 5s ease infinite;
+  box-shadow: 0 0 30px rgba(45,212,191,0.25), 0 0 80px rgba(45,212,191,0.08), 0 4px 12px rgba(0,0,0,0.4);
+  transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  letter-spacing: -0.3px;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.cta::before {
+  content: ''; position: absolute; inset: -3px; border-radius: inherit;
+  background: linear-gradient(135deg, rgba(45,212,191,0.5), rgba(6,182,212,0.3), rgba(14,165,233,0.5));
+  background-size: 300% 300%; animation: shimmer 5s ease infinite;
+  z-index: -1; filter: blur(16px); opacity: 0.4;
+}
+.cta:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 0 50px rgba(45,212,191,0.4), 0 0 100px rgba(45,212,191,0.12), 0 8px 20px rgba(0,0,0,0.5);
+}
+.cta:active { transform: translateY(-1px) scale(0.99); }
+.cta-glow { animation: shimmer 5s ease infinite, neon-glow 4s ease-in-out infinite, cta-pulse 3s ease-in-out infinite; }
+@keyframes cta-pulse { 0%,100%{box-shadow:0 0 30px rgba(45,212,191,0.25),0 0 80px rgba(45,212,191,0.08),0 4px 12px rgba(0,0,0,0.4),0 0 0 0 rgba(45,212,191,0.3)} 50%{box-shadow:0 0 30px rgba(45,212,191,0.25),0 0 80px rgba(45,212,191,0.08),0 4px 12px rgba(0,0,0,0.4),0 0 0 12px rgba(45,212,191,0)} }
+
+/* ══════ SLIDER ══════ */
+input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+  border-radius: 2px; outline: none; cursor: pointer;
+  background: linear-gradient(90deg, rgba(45,212,191,0.3) 0%, rgba(8,14,28,0.8) 100%);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--neon-bright), var(--neon));
+  box-shadow: 0 0 20px var(--neon-glow), 0 0 40px rgba(45,212,191,0.12), 0 2px 8px rgba(0,0,0,0.4);
+  cursor: pointer; transition: all 0.2s;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 30px var(--neon-glow), 0 0 60px rgba(45,212,191,0.2); transform: scale(1.15);
+}
+input[type=range]::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--neon-bright), var(--neon));
+  box-shadow: 0 0 20px var(--neon-glow); cursor: pointer; border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* ══════ INPUT ══════ */
+.input {
+  width: 100%; padding: 11px 14px; background: rgba(0,0,0,0.35);
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none;
+  transition: all 0.3s;
+}
+.input:focus {
+  border-color: rgba(45,212,191,0.3);
+  box-shadow: 0 0 0 3px rgba(45,212,191,0.06), 0 0 20px rgba(45,212,191,0.05);
+  background: rgba(0,0,0,0.45);
+}
+select.input { cursor: pointer; font-family: 'Space Grotesk', sans-serif; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ══════ SECTION HEADING ══════ */
+.sec {
+  color: var(--text-dim); font-size: 11px; font-weight: 700;
+  margin-bottom: 18px; text-transform: uppercase; letter-spacing: 2.5px;
+  display: flex; align-items: center; gap: 12px;
+}
+.sec::before {
+  content: ''; width: 3px; height: 14px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--neon), rgba(45,212,191,0.2));
+  flex-shrink: 0;
+}
+.sec::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent 80%);
+}
+
+.lbl { font-size: 11px; color: var(--text-mute); display: block; margin-bottom: 7px; font-weight: 500; letter-spacing: 0.4px; }
+
+/* ══════ TABLES ══════ */
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+.tbl th {
+  padding: 10px 12px; text-align: center; color: var(--text-ghost);
+  font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid rgba(196,212,224,0.05);
+  background: rgba(0,0,0,0.2); position: sticky; top: 0;
+}
+.tbl th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.tbl th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.tbl td {
+  padding: 9px 12px; text-align: center; color: var(--text-dim);
+  border-bottom: 1px solid rgba(196,212,224,0.02);
+  transition: background 0.2s;
+}
+.tbl tr:hover td { background: rgba(45,212,191,0.02); }
+.tbl tbody tr:first-child td { background: rgba(45,212,191,0.04); }
+
+/* ══════ TIER BARS ══════ */
+.tier-bar { height: 5px; border-radius: 3px; transition: all 0.6s cubic-bezier(0.16,1,0.3,1); animation: bar-fill 1s cubic-bezier(0.16,1,0.3,1) both; }
+.tier-label { font-size: 8px; text-align: center; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+/* ══════ TAB BAR ══════ */
+.tabs {
+  display: flex; gap: 4px; margin-bottom: 26px; padding: 5px;
+  border-radius: var(--radius-lg); background: rgba(4,8,18,0.8);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  position: relative;
+}
+.tab-btn {
+  flex: 1; padding: 14px 10px; font-size: 13px; font-weight: 700;
+  border: none; border-radius: var(--radius-md); cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; background: transparent;
+  color: var(--text-mute); transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.tab-btn:hover:not(.active) { color: var(--text-dim); background: rgba(196,212,224,0.02); }
+.tab-btn.active {
+  background: var(--neon-dim); color: var(--neon);
+  box-shadow: inset 0 0 0 1px rgba(45,212,191,0.2), 0 0 20px rgba(45,212,191,0.06);
+}
+
+/* ══════ STEP ICONS ══════ */
+.step-icon {
+  min-width: 54px; height: 54px; border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(45,212,191,0.08), rgba(6,182,212,0.04));
+  border: 1px solid rgba(45,212,191,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+  transition: all 0.35s;
+  position: relative;
+}
+.step-row:hover .step-icon {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px rgba(45,212,191,0.15);
+  border-color: rgba(45,212,191,0.2);
+}
+
+/* ══════ KPI CARD ══════ */
+.kpi {
+  text-align: center; padding: 20px 16px;
+  background: rgba(0,0,0,0.25); border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  transition: all 0.35s;
+  position: relative; overflow: hidden;
+}
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(45,212,191,0.25), transparent);
+}
+.kpi::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse at center bottom, rgba(45,212,191,0.03), transparent 70%);
+  pointer-events: none;
+}
+.kpi:hover { border-color: var(--border-holo); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.kpi-label { font-size: 9px; color: var(--text-mute); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; }
+.kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 800; line-height: 1.1; animation: flicker 8s linear infinite; text-shadow: 0 0 12px currentColor; }
+.kpi-sub { font-size: 10px; color: var(--text-ghost); margin-top: 5px; }
+
+/* ══════ GRIDS ══════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+.flex-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ══════ LEAGUE CARDS ══════ */
+.league-Bronze { background: linear-gradient(135deg, rgba(120,53,15,0.35), rgba(69,26,3,0.25)); }
+.league-Argent { background: linear-gradient(135deg, rgba(51,65,85,0.35), rgba(30,41,59,0.25)); }
+.league-Or { background: linear-gradient(135deg, rgba(113,63,18,0.35), rgba(66,32,6,0.25)); }
+.league-Platine { background: linear-gradient(135deg, rgba(30,58,95,0.35), rgba(12,25,41,0.25)); }
+.league-Diamant { background: linear-gradient(135deg, rgba(59,31,110,0.35), rgba(30,17,69,0.25)); }
+.league-Tungstene { background: linear-gradient(135deg, rgba(69,10,10,0.35), rgba(28,4,4,0.25)); }
+
+/* ══════ BADGE ══════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* ══════ STATUS DOT ══════ */
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.dot-live { background: var(--green); box-shadow: 0 0 10px rgba(52,211,153,0.6); animation: pulse-ring 2s ease infinite; }
+
+/* ══════ CHART ══════ */
+.chart-wrap {
+  position: relative; background: rgba(0,0,0,0.2);
+  border-radius: var(--radius-md); padding: 18px;
+  border: 1px solid var(--border);
+}
+.chart-wrap canvas { max-height: 280px; }
+
+/* ══════ TAB TRANSITIONS ══════ */
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.5s ease both; }
+
+/* ══════ HEADER ══════ */
+.gradient-text {
+  background: linear-gradient(135deg, #C4D4E0 0%, #2DD4BF 25%, #06B6D4 50%, #A78BFA 75%, #C4D4E0 100%);
+  background-size: 300% 300%;
+  animation: holo-border 10s ease infinite;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ══════ TRUST ROW ══════ */
+.trust-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; flex-wrap: wrap; margin-top: 20px;
+}
+.trust-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-ghost); font-weight: 500;
+  padding: 7px 16px; border-radius: 24px;
+  background: rgba(196,212,224,0.02);
+  border: 1px solid rgba(196,212,224,0.05);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s;
+}
+.trust-item:hover { border-color: rgba(196,212,224,0.1); background: rgba(196,212,224,0.04); }
+.trust-item span:first-child { font-size: 14px; }
+
+/* ══════ DIVIDER ══════ */
+.divider {
+  height: 1px; margin: 32px 0;
+  background: linear-gradient(90deg, transparent, rgba(196,212,224,0.08), transparent);
+}
+
+/* ══════ RESPONSIVE ══════ */
+@media (max-width: 768px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .moon-container { width: 200px; height: 200px; top: -50px; right: -40px; }
+}
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .cta { padding: 15px 32px; font-size: 15px; }
+  .wrap { padding: 8px 14px; }
+  .glass, .glass-holo { padding: 22px; border-radius: var(--radius-lg); }
+  .kpi-value { font-size: 22px; }
+  .tabs { gap: 2px; padding: 4px; }
+  .tab-btn { font-size: 11px; padding: 12px 6px; }
+  .trust-row { gap: 8px; }
+  .trust-item { font-size: 10px; padding: 5px 10px; }
+  .moon-container { display: none; }
+}
+@media (max-width: 400px) {
+  .grid-4 { grid-template-columns: 1fr; }
+  h1 { font-size: 28px !important; }
+}
+</style>
+</head>
+<body>
+<!-- Starfield -->
+<canvas id="starfield"></canvas>
+
+<!-- Moon -->
+<div class="moon-container">
+  <div class="moon">
+    <div class="moon-crater" style="width:40px;height:40px;top:30%;left:25%"></div>
+    <div class="moon-crater" style="width:25px;height:25px;top:50%;left:55%"></div>
+    <div class="moon-crater" style="width:18px;height:18px;top:25%;left:60%"></div>
+    <div class="moon-crater" style="width:30px;height:30px;top:60%;left:30%"></div>
+    <div class="moon-crater" style="width:12px;height:12px;top:40%;left:40%"></div>
+  </div>
+</div>
+
+<!-- Aura -->
+<div class="aura aura-1"></div>
+<div class="aura aura-2"></div>
+<div class="aura aura-3"></div>
+
+<div class="wrap">
+  <!-- ══════ LANG TOGGLE ══════ -->
+  <div class="fade" style="display:flex;justify-content:flex-end;padding:8px 0">
+    <button id="lang-toggle" onclick="toggleLang()" class="pill" style="padding:6px 14px;font-size:12px;font-weight:700;opacity:0.7;display:flex;align-items:center;gap:6px;border-color:rgba(196,212,224,0.1)">
+      <span id="lang-flag">🇬🇧</span> <span id="lang-label">English</span>
+    </button>
+  </div>
+
+  <!-- ══════ HEADER ══════ -->
+  <header class="fade" style="text-align:center;padding:20px 20px 36px">
+    <div style="margin-bottom:18px;animation:float 6s ease-in-out infinite;filter:drop-shadow(0 0 24px rgba(45,212,191,0.3)) drop-shadow(0 0 60px rgba(45,212,191,0.1))">
+      <img src="https://moonwalk.fit/logo512.png" alt="Moonwalk Fitness" width="88" height="88" style="border-radius:50%">
+    </div>
+    <h1 class="gradient-text" style="font-size:40px;font-weight:900;letter-spacing:-2px;margin-bottom:10px;line-height:1.05">Moonwalk Fitness</h1>
+    <p data-i18n="subtitle" style="font-size:14px;color:var(--text-mute);margin-bottom:3px;font-weight:300;letter-spacing:3px;text-transform:uppercase">Simulateur de gains</p>
+    <p class="mono" style="font-size:18px;color:var(--neon);font-weight:700;margin-bottom:28px;letter-spacing:1px">$MF</p>
+    <a href="https://go.moonwalk.fit/?r=61eeb64b" onclick="return openAffLink(event)" class="cta cta-glow" data-i18n="cta_join">Rejoindre Moonwalk Fitness</a>
+    <div class="trust-row">
+      <div class="trust-item"><span>🔗</span> Solana</div>
+      <div class="trust-item"><span class="dot dot-live"></span> <span data-i18n="trust_walkers">8 040+ marcheurs</span></div>
+      <div class="trust-item"><span>📱</span> iOS & Android</div>
+      <div class="trust-item"><span>✅</span> <span data-i18n="trust_success">~99% de réussite</span></div>
+    </div>
+  </header>
+
+  <!-- ══════ TABS ══════ -->
+  <nav class="tabs fade fade-1">
+    <button class="tab-btn active" onclick="switchTab('f2p')" data-i18n="tab_f2p">🆓 Commencer</button>
+    <button class="tab-btn" onclick="switchTab('sim')" data-i18n="tab_sim">💰 Avancé</button>
+    <button class="tab-btn" onclick="switchTab('migration')" data-i18n="tab_mig">📈 Projections</button>
+  </nav>
+
+  <!-- ══════ F2P TAB ══════ -->
+  <div id="tab-f2p" class="tab-content active">
+    <div class="glass fade fade-2">
+      <h2 style="font-size:21px;font-weight:800;color:var(--text-bright);margin-bottom:22px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">📖</span> <span data-i18n="how_title">Comment ça marche ?</span>
+      </h2>
+      <div id="steps-container"></div>
+    </div>
+
+    <div class="glass-holo fade fade-3">
+      <div class="sec" data-i18n="sec_config">Configure ta simulation</div>
+      <label class="lbl" data-i18n="lbl_step_goal">Objectif de pas quotidien</label>
+      <div id="step-goals" class="flex-wrap" style="margin-bottom:8px"></div>
+      <div id="bonus-rate" style="font-size:11px;margin-bottom:22px"></div>
+      <div class="grid-2">
+        <div>
+          <label class="lbl"><span data-i18n="lbl_challenges">Défis simultanés</span> : <span id="nb-games-display" class="mono" style="color:var(--neon);font-size:22px;font-weight:700"></span></label>
+          <input type="range" id="nb-games" min="1" max="100" value="10" oninput="updateF2P()" style="margin-bottom:14px">
+          <div id="game-presets" class="flex-wrap"></div>
+        </div>
+        <div>
+          <label class="lbl" data-i18n="lbl_stake">Mise par défi</label>
+          <div id="stake-btns" class="flex-wrap" style="margin-bottom:14px"></div>
+          <div id="deposit-info" style="font-size:11px;color:var(--text-mute)"></div>
+        </div>
+      </div>
+      <div style="margin-top:26px"><div class="grid-3" id="f2p-instant"></div></div>
+    </div>
+
+    <div class="glass fade fade-4">
+      <div class="sec" data-i18n="sec_progression">Progression Tier 1</div>
+      <div id="progression-cards"></div>
+    </div>
+
+    <div class="glass fade fade-5">
+      <div class="sec" data-i18n="sec_projection">Projection 12 mois</div>
+      <div class="chart-wrap" style="margin-bottom:22px"><canvas id="f2p-chart"></canvas></div>
+      <details style="cursor:pointer">
+        <summary style="font-size:12px;color:var(--text-mute);font-weight:600;margin-bottom:14px;user-select:none" data-i18n="details_table">Voir le tableau détaillé</summary>
+        <div style="overflow-x:auto"><table class="tbl" id="f2p-table"></table></div>
+      </details>
+    </div>
+
+    <div class="glass-light fade" style="margin-bottom:26px;border:1px solid rgba(245,158,11,0.12);background:linear-gradient(135deg,rgba(245,158,11,0.03),rgba(8,14,28,0.7))">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="font-size:30px;flex-shrink:0;margin-top:2px;filter:drop-shadow(0 0 8px rgba(245,158,11,0.3))">💡</div>
+        <div>
+          <h3 style="color:var(--amber);font-size:15px;font-weight:800;margin-bottom:8px" data-i18n="upsell_title">Bloquer tes MF = multiplier tes gains</h3>
+          <p style="font-size:12.5px;color:var(--text-dim);line-height:1.8" data-i18n-html="upsell_body">
+            En <strong style="color:var(--neon)">lockant</strong> tes tokens dans l'app, tu montes de Tier. En Or, le Tier 4 rapporte <strong style="color:var(--neon)">~5x plus</strong> que le Tier 1. Tu récupères 100% de tes tokens à la fin. Essaie l'onglet <strong style="color:var(--amber)">"Avancé"</strong> !
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:36px 0">
+      <a href="https://go.moonwalk.fit/?r=61eeb64b" onclick="return openAffLink(event)" class="cta cta-glow" style="font-size:18px;padding:19px 52px" data-i18n="cta_start">Commencer sur Moonwalk</a>
+      <p style="font-size:11px;color:var(--text-ghost);margin-top:14px" data-i18n="download_cta">Télécharge l'app sur iOS ou Android</p>
+    </div>
+  </div>
+
+  <!-- ══════ SIM TAB ══════ -->
+  <div id="tab-sim" class="tab-content">
+    <div class="glass-holo" id="sim-buy-section">
+      <h2 style="font-size:19px;font-weight:800;color:var(--text-bright);margin-bottom:24px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">📊</span> <span data-i18n="sim_title">Simuler un investissement</span>
+      </h2>
+      <div style="text-align:center;padding:28px;background:rgba(0,0,0,0.35);border-radius:var(--radius-lg);margin-bottom:20px;border:1px solid var(--border);position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(45,212,191,0.03),transparent 70%);pointer-events:none"></div>
+        <div class="mono" id="buy-display" style="font-size:52px;font-weight:800;color:var(--neon);line-height:1;position:relative;text-shadow:0 0 20px rgba(45,212,191,0.4)"></div>
+        <div class="mono" id="buy-usd" style="font-size:24px;color:var(--amber);font-weight:700;margin-top:12px;position:relative"></div>
+        <div class="mono" id="buy-weighted" style="font-size:12px;color:var(--text-mute);margin-top:8px;position:relative"></div>
+      </div>
+      <input type="range" id="buy-slider" min="0" max="80000" step="500" value="0" oninput="updateSim()" style="margin-bottom:20px">
+      <div id="buy-presets" class="flex-wrap" style="justify-content:center"></div>
+    </div>
+
+    <div class="glass">
+      <div class="sec" data-i18n="sec_params">Paramètres</div>
+      <div class="grid-4">
+        <div><label class="lbl" data-i18n="lbl_price">Prix $MF</label><input type="number" class="input" id="price-input" step="0.001" value="0.013" onchange="updateSim()"></div>
+        <div><label class="lbl" data-i18n="lbl_locked">Tokens lockés</label><input type="number" class="input" id="locked-input" step="100" value="16348" onchange="updateSim()"></div>
+        <div><label class="lbl" data-i18n="lbl_duration">Durée lock</label><select class="input" id="dur-input" onchange="updateSim()"><option value="30" data-i18n="dur_30">30j (x1.08)</option><option value="90" data-i18n="dur_90">90j (x1.25)</option><option value="180" data-i18n="dur_180">6 mois (x1.5)</option><option value="365" selected data-i18n="dur_365">1 an (x2.0)</option></select></div>
+        <div><label class="lbl" data-i18n="lbl_weighted">Pondéré</label><div class="mono" id="weighted-display" style="padding:11px 14px;background:rgba(45,212,191,0.05);border-radius:var(--radius-sm);color:var(--neon);font-weight:700;font-size:14px;text-align:center;border:1px solid rgba(45,212,191,0.12)"></div></div>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="sec" data-i18n="sec_leagues">Ligues actives</div>
+      <div id="league-btns" class="flex-wrap"></div>
+    </div>
+
+    <div id="league-results"></div>
+    <div class="glass" id="sim-summary"></div>
+    <div class="glass" id="sim-targets" style="display:none">
+      <div class="sec" style="color:var(--amber)" data-i18n="sec_targets">Prochains paliers</div>
+      <div id="targets-list"></div>
+    </div>
+  </div>
+
+  <!-- ══════ MIGRATION TAB ══════ -->
+  <div id="tab-migration" class="tab-content">
+    <div class="glass">
+      <div class="sec" data-i18n="sec_scenario">Scénario de croissance</div>
+      <div id="scenario-btns" class="flex-wrap" style="margin-bottom:20px"></div>
+      <label class="lbl"><span data-i18n="lbl_projection">Projection</span> : <span id="proj-weeks-display" class="mono" style="color:var(--neon);font-weight:700"></span></label>
+      <input type="range" id="proj-weeks" min="8" max="52" value="26" oninput="updateMigration()">
+    </div>
+    <div class="glass">
+      <div class="sec" data-i18n="sec_evolution">Evolution des joueurs</div>
+      <div class="chart-wrap" style="margin-bottom:22px"><canvas id="mig-chart"></canvas></div>
+    </div>
+    <div class="glass">
+      <div class="sec" data-i18n="sec_data">Données de projection</div>
+      <div style="overflow-x:auto"><table class="tbl" id="mig-table"></table></div>
+    </div>
+  </div>
+
+  <!-- ══════ FOOTER ══════ -->
+  <footer style="text-align:center;padding:40px 0 28px">
+    <div class="divider"></div>
+    <a href="https://go.moonwalk.fit/?r=61eeb64b" onclick="return openAffLink(event)" class="cta" style="margin-bottom:18px" data-i18n="cta_join_short">Rejoindre Moonwalk</a>
+    <p style="font-size:10px;color:var(--text-ghost);line-height:2;margin-top:18px" data-i18n="footer_disclaimer">
+      Simulateur communautaire &bull; Données Mars 2026 &bull; Pas un conseil financier
+    </p>
+  </footer>
+</div>
+
+<script>
+// ═══════ SMART AFFILIATE LINK HANDLER ═══════
+function openAffLink(e) {
+  e.preventDefault();
+  const url = e.currentTarget.href;
+  const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isInIframe = window.self !== window.top;
+
+  if (isMobile) {
+    // Mobile: ouvre dans le même onglet pour éviter les popups bloqués
+    if (isInIframe) {
+      window.top.location.href = url;
+    } else {
+      window.location.href = url;
+    }
+  } else {
+    // Desktop: ouvre dans un nouvel onglet plein écran
+    if (isInIframe) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+  return false;
+}
+
+// ═══════ i18n ═══════
+let lang = 'fr';
+const I18N = {
+  fr: {
+    lang_flag: '🇬🇧', lang_label: 'English',
+    subtitle: 'Simulateur de gains', cta_join: 'Rejoindre Moonwalk Fitness',
+    trust_walkers: '8 040+ marcheurs', trust_success: '~99% de réussite',
+    tab_f2p: '🆓 Commencer', tab_sim: '💰 Avancé', tab_mig: '📈 Projections',
+    how_title: 'Comment ça marche ?',
+    sec_config: 'Configure ta simulation', lbl_step_goal: 'Objectif de pas quotidien',
+    lbl_challenges: 'Défis simultanés', lbl_stake: 'Mise par défi',
+    sec_progression: 'Progression Tier 1', sec_projection: 'Projection 12 mois',
+    details_table: 'Voir le tableau détaillé',
+    upsell_title: 'Bloquer tes MF = multiplier tes gains',
+    upsell_body: 'En <strong style="color:var(--neon)">lockant</strong> tes tokens dans l\'app, tu montes de Tier. En Or, le Tier 4 rapporte <strong style="color:var(--neon)">~5x plus</strong> que le Tier 1. Tu récupères 100% de tes tokens à la fin. Essaie l\'onglet <strong style="color:var(--amber)">"Avancé"</strong> !',
+    cta_start: 'Commencer sur Moonwalk', download_cta: 'Télécharge l\'app sur iOS ou Android',
+    sim_title: 'Simuler un investissement',
+    sec_params: 'Paramètres', lbl_price: 'Prix $MF', lbl_locked: 'Tokens lockés',
+    lbl_duration: 'Durée lock', lbl_weighted: 'Pondéré',
+    dur_30: '30j (x1.08)', dur_90: '90j (x1.25)', dur_180: '6 mois (x1.5)', dur_365: '1 an (x2.0)',
+    sec_leagues: 'Ligues actives', sec_targets: 'Prochains paliers',
+    sec_scenario: 'Scénario de croissance', lbl_projection: 'Projection',
+    sec_evolution: 'Evolution des joueurs', sec_data: 'Données de projection',
+    cta_join_short: 'Rejoindre Moonwalk',
+    footer_disclaimer: 'Simulateur communautaire &bull; Données Mars 2026 &bull; Pas un conseil financier',
+    // JS dynamic strings
+    bonus_prefix: 'Bonus', per_challenge: 'par défi réussi',
+    deposit_prefix: 'Dépôt total', deposit_suffix: '(récupéré ~99%)',
+    kpi_bonus: 'Bonus hebdo', kpi_xp: 'XP boost', kpi_mfgames: 'MF Games (niv.10)',
+    kpi_per_challenge: 'par défi', kpi_parallel: 'défis parallèles',
+    challenges_unit: 'défis', weeks_unit: 'sem', weeks_full: 'semaines',
+    table_headers: ['Période','Ligue','MF','MF/sem','$/sem','Bonus','Cumulé $'],
+    week1: 'Sem 1', month: 'Mois',
+    chart_mf: 'MF/sem', chart_cumul: 'Cumulé $', chart_y_mf: 'MF / semaine', chart_y_cumul: 'Cumulé $',
+    summary: 'Résumé', per_week: 'Par semaine', per_month: 'Par mois', per_year: 'Par an',
+    investment: 'Investissement', extra_gain: 'Gain supp./sem', payback: 'Payback',
+    weighted_label: 'Pondéré', current: 'Actuel',
+    walkers: 'marcheurs', now: 'Maintenant',
+    scenario_conservative: '🐢 Conservateur', scenario_moderate: '⚖️ Modéré', scenario_aggressive: '🚀 Agressif',
+    months: ['Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'],
+    leagues: {Bronze:'Bronze',Argent:'Argent',Or:'Or',Platine:'Platine',Diamant:'Diamant',"Tungstène":'Tungstène'},
+    steps: [
+      {t:"Télécharge l'app", d:"Connecte Google Fit, Apple Health, Fitbit ou Garmin."},
+      {t:"Rejoins des défis de pas", d:"3K à 12K pas/jour, 5 à 30 jours. Mise min : 200 MF ou 1 USDC. Jusqu'à 20 défis/jour !"},
+      {t:"Marche et récupère ta mise", d:"98-99% réussissent. Tu récupères ta mise + 1-2% de bonus. Plus de défis = plus d'XP."},
+      {t:"Niveau 10 → MF Games", d:"Dès le niveau 10 Bronze, accès aux MF Games hebdomadaires gratuits."},
+      {t:"Gagne du $MF chaque semaine", d:"236 000 tokens distribués par ligue/semaine. Plus tu montes, plus tu gagnes."},
+    ],
+  },
+  en: {
+    lang_flag: '🇫🇷', lang_label: 'Français',
+    subtitle: 'Earnings Simulator', cta_join: 'Join Moonwalk Fitness',
+    trust_walkers: '8,040+ walkers', trust_success: '~99% success rate',
+    tab_f2p: '🆓 Get Started', tab_sim: '💰 Advanced', tab_mig: '📈 Projections',
+    how_title: 'How does it work?',
+    sec_config: 'Configure your simulation', lbl_step_goal: 'Daily step goal',
+    lbl_challenges: 'Simultaneous challenges', lbl_stake: 'Stake per challenge',
+    sec_progression: 'Tier 1 Progression', sec_projection: '12-month Projection',
+    details_table: 'View detailed table',
+    upsell_title: 'Lock your MF = multiply your earnings',
+    upsell_body: 'By <strong style="color:var(--neon)">locking</strong> your tokens in the app, you move up Tiers. In Gold, Tier 4 earns <strong style="color:var(--neon)">~5x more</strong> than Tier 1. You get 100% back at the end. Try the <strong style="color:var(--amber)">"Advanced"</strong> tab!',
+    cta_start: 'Start on Moonwalk', download_cta: 'Download on iOS or Android',
+    sim_title: 'Simulate an investment',
+    sec_params: 'Parameters', lbl_price: '$MF Price', lbl_locked: 'Locked tokens',
+    lbl_duration: 'Lock duration', lbl_weighted: 'Weighted',
+    dur_30: '30d (x1.08)', dur_90: '90d (x1.25)', dur_180: '6 mo (x1.5)', dur_365: '1 yr (x2.0)',
+    sec_leagues: 'Active leagues', sec_targets: 'Next milestones',
+    sec_scenario: 'Growth scenario', lbl_projection: 'Projection',
+    sec_evolution: 'Player evolution', sec_data: 'Projection data',
+    cta_join_short: 'Join Moonwalk',
+    footer_disclaimer: 'Community simulator &bull; Data March 2026 &bull; Not financial advice',
+    bonus_prefix: 'Bonus', per_challenge: 'per successful challenge',
+    deposit_prefix: 'Total deposit', deposit_suffix: '(~99% recovered)',
+    kpi_bonus: 'Weekly bonus', kpi_xp: 'XP boost', kpi_mfgames: 'MF Games (lvl.10)',
+    kpi_per_challenge: 'per challenge', kpi_parallel: 'parallel challenges',
+    challenges_unit: 'challenges', weeks_unit: 'wk', weeks_full: 'weeks',
+    table_headers: ['Period','League','MF','MF/wk','$/wk','Bonus','Cumul. $'],
+    week1: 'Wk 1', month: 'Month',
+    chart_mf: 'MF/wk', chart_cumul: 'Cumul. $', chart_y_mf: 'MF / week', chart_y_cumul: 'Cumul. $',
+    summary: 'Summary', per_week: 'Per week', per_month: 'Per month', per_year: 'Per year',
+    investment: 'Investment', extra_gain: 'Extra gain/wk', payback: 'Payback',
+    weighted_label: 'Weighted', current: 'Current',
+    walkers: 'walkers', now: 'Now',
+    scenario_conservative: '🐢 Conservative', scenario_moderate: '⚖️ Moderate', scenario_aggressive: '🚀 Aggressive',
+    months: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    leagues: {Bronze:'Bronze',Argent:'Silver',Or:'Gold',Platine:'Platinum',Diamant:'Diamond',"Tungstène":'Tungsten'},
+    steps: [
+      {t:"Download the app", d:"Connect Google Fit, Apple Health, Fitbit or Garmin."},
+      {t:"Join step challenges", d:"3K to 12K steps/day, 5 to 30 days. Min stake: 200 MF or 1 USDC. Up to 20 challenges/day!"},
+      {t:"Walk and get your stake back", d:"98-99% succeed. Get your stake back + 1-2% bonus. More challenges = more XP."},
+      {t:"Level 10 → MF Games", d:"At level 10 Bronze, access free weekly MF Games."},
+      {t:"Earn $MF every week", d:"236,000 tokens distributed per league/week. The higher you go, the more you earn."},
+    ],
+  }
+};
+
+function T(key) { return I18N[lang][key] || I18N.fr[key] || key; }
+function TL(lg) { return T('leagues')[lg] || lg; }
+
+function toggleLang() {
+  lang = lang === 'fr' ? 'en' : 'fr';
+  applyI18n();
+  // Re-render all dynamic content
+  initF2P();
+  updateSim();
+  updateMigration();
+}
+
+function applyI18n() {
+  document.getElementById('lang-flag').textContent = T('lang_flag');
+  document.getElementById('lang-label').textContent = T('lang_label');
+  document.documentElement.lang = lang;
+  // Static data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
+  });
+  // HTML content (upsell body)
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (I18N[lang][key] !== undefined) el.innerHTML = I18N[lang][key];
+  });
+}
+
+// ═══════ STARFIELD ═══════
+(function() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [], shootingStars = [];
+  const STAR_COUNT = 180;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Create stars
+  for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.3,
+      alpha: Math.random() * 0.6 + 0.2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      color: Math.random() > 0.85 ? `rgba(45,212,191,` : Math.random() > 0.7 ? `rgba(167,139,250,` : `rgba(196,212,224,`
+    });
+  }
+
+  function spawnShootingStar() {
+    if (Math.random() > 0.003 || shootingStars.length > 1) return;
+    shootingStars.push({
+      x: Math.random() * canvas.width * 0.8,
+      y: Math.random() * canvas.height * 0.4,
+      len: Math.random() * 80 + 40,
+      speed: Math.random() * 8 + 6,
+      angle: Math.PI / 4 + Math.random() * 0.3,
+      alpha: 1,
+      life: 1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const time = Date.now() * 0.001;
+
+    // Stars
+    for (const s of stars) {
+      const twinkle = Math.sin(time * s.twinkleSpeed * 60 + s.twinkleOffset) * 0.3 + 0.7;
+      const a = s.alpha * twinkle;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.color + a.toFixed(3) + ')';
+      ctx.fill();
+      // Glow
+      if (s.r > 1) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+        ctx.fillStyle = s.color + (a * 0.1).toFixed(3) + ')';
+        ctx.fill();
+      }
+    }
+
+    // Shooting stars
+    spawnShootingStar();
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+      const ss = shootingStars[i];
+      ss.x += Math.cos(ss.angle) * ss.speed;
+      ss.y += Math.sin(ss.angle) * ss.speed;
+      ss.life -= 0.015;
+      ss.alpha = ss.life;
+      if (ss.life <= 0) { shootingStars.splice(i, 1); continue; }
+
+      const grad = ctx.createLinearGradient(
+        ss.x, ss.y,
+        ss.x - Math.cos(ss.angle) * ss.len,
+        ss.y - Math.sin(ss.angle) * ss.len
+      );
+      grad.addColorStop(0, `rgba(196,212,224,${ss.alpha})`);
+      grad.addColorStop(1, `rgba(196,212,224,0)`);
+      ctx.beginPath();
+      ctx.moveTo(ss.x, ss.y);
+      ctx.lineTo(ss.x - Math.cos(ss.angle) * ss.len, ss.y - Math.sin(ss.angle) * ss.len);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ═══════ DATA ═══════
+const PPT=59135,LG=["Bronze","Argent","Or","Platine","Diamant","Tungstène"];
+const TH={Bronze:[0,2500,5000,10000],Argent:[0,10000,16000,31500],Or:[0,10000,31500,71500],Platine:[0,31500,71500,145000],Diamant:[0,71500,145000,275000],"Tungstène":[0,145000,275000,600000]};
+const XM={Bronze:[1,1.5,2,3],Argent:[.8,1,2,3],Or:[.4,.8,1.6,2.4],Platine:[.3,.6,1.2,1.8],Diamant:[.2,.4,.8,1.2],"Tungstène":[.1,.2,.4,.6]};
+const WI={Bronze:[740,520,402,358],Argent:[600,420,402,221],Or:[500,392,224,115],Platine:[411,180,102,60],Diamant:[195,90,52,29],"Tungstène":[100,30,18,9]};
+const WK={Bronze:3520,Argent:2470,Or:1200,Platine:550,Diamant:280,"Tungstène":20};
+const CL={Bronze:{gw:"#D97706",tx:"#FCD34D",ic:"🥉"},Argent:{gw:"#94A3B8",tx:"#E2E8F0",ic:"🥈"},Or:{gw:"#EAB308",tx:"#FEF08A",ic:"🥇"},Platine:{gw:"#38BDF8",tx:"#BAE6FD",ic:"💎"},Diamant:{gw:"#A78BFA",tx:"#DDD6FE",ic:"♦️"},"Tungstène":{gw:"#EF4444",tx:"#FCA5A5",ic:"🔥"}};
+const MULTS={30:1.08,90:1.25,180:1.5,365:2};
+
+// Chart.js config
+Chart.defaults.color='#8B9DB5';
+Chart.defaults.borderColor='rgba(196,212,224,0.04)';
+Chart.defaults.font.family="'DM Sans', sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.plugins.legend.labels.usePointStyle=true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth=8;
+Chart.defaults.plugins.legend.labels.padding=16;
+
+// ═══════ STATE ═══════
+let state = {
+  tab:"f2p", price:0.013, stepGoal:5000, stakeUSD:1, nbGames:10,
+  locked:16348, buy:0, dur:365, scenario:"moderate", projWeeks:26,
+  active:{Bronze:true,Argent:true,Or:true,Platine:false,Diamant:false,"Tungstène":false}
+};
+let f2pChart=null, migChart=null;
+
+// ═══════ HELPERS ═══════
+const gT=(wt,lg)=>{const t=TH[lg];for(let i=3;i>=0;i--)if(wt>=t[i])return i;return 0;};
+const gR=(lg,ti)=>{const w=WI[lg]?.[ti];return w>0?Math.round(PPT/w*100)/100:0;};
+const fmt=n=>Math.round(n).toLocaleString();
+
+// ═══════ TABS ═══════
+function switchTab(t) {
+  state.tab=t;
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((btn,i)=>{
+    btn.classList.toggle('active',['f2p','sim','migration'][i]===t);
+  });
+  if(t==='sim')updateSim();
+  if(t==='migration')updateMigration();
+}
+
+// ═══════ F2P ═══════
+function initF2P(){
+  const ics=[
+    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>`,
+    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`,
+    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="rgba(167,139,250,0.15)"/></svg>`,
+    `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 100 4h4a2 2 0 010 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>`
+  ];
+  const steps=T('steps').map((s,i)=>({ic:ics[i],t:s.t,d:s.d}));
+  document.getElementById('steps-container').innerHTML=steps.map((s,i)=>`
+    <div class="step-row fade" style="display:flex;gap:18px;align-items:flex-start;margin-bottom:${i<steps.length-1?'20px':'0'};animation-delay:${0.25+i*0.1}s">
+      <div class="step-icon">${s.ic}</div>
+      <div><div style="font-size:14px;font-weight:700;color:var(--text-bright);margin-bottom:5px">${s.t}</div><div style="font-size:12.5px;color:var(--text-dim);line-height:1.75">${s.d}</div></div>
+    </div>
+  `).join('');
+  rebuildPills();
+  updateF2P();
+}
+
+function updateF2P(){
+  state.nbGames=parseInt(document.getElementById('nb-games').value);
+  const br=state.stepGoal>=10000?0.02:0.01;
+  const wb=state.stakeUSD*br*state.nbGames;
+  const td=state.stakeUSD*state.nbGames;
+
+  document.getElementById('nb-games-display').textContent=state.nbGames;
+  document.getElementById('bonus-rate').innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px">${T('bonus_prefix')} : <span class="badge" style="background:${state.stepGoal>=10000?'var(--green-dim)':'rgba(196,212,224,0.04)'};color:${state.stepGoal>=10000?'var(--green)':'var(--text-mute)'};font-weight:700">${state.stepGoal>=10000?'~2%':'~1%'} ${T('per_challenge')}</span></span>`;
+  document.getElementById('deposit-info').innerHTML=`${T('deposit_prefix')} : <span class="mono" style="color:var(--amber);font-weight:700">$${td}</span> <span style="color:var(--text-ghost)">${T('deposit_suffix')}</span>`;
+  rebuildPills();
+
+  const mfGames = Math.round(gR("Bronze",0));
+  document.getElementById('f2p-instant').innerHTML=`
+    <div class="kpi"><div class="kpi-label">${T('kpi_bonus')}</div><div class="kpi-value" style="color:var(--amber)">+$${wb.toFixed(2)}</div><div class="kpi-sub">${state.nbGames}x ${Math.round(br*100)}% ${T('kpi_per_challenge')}</div></div>
+    <div class="kpi"><div class="kpi-label">${T('kpi_xp')}</div><div class="kpi-value" style="color:var(--purple)">x${state.nbGames}</div><div class="kpi-sub">${T('kpi_parallel')}</div></div>
+    <div class="kpi"><div class="kpi-label">${T('kpi_mfgames')}</div><div class="kpi-value" style="color:var(--neon)">${mfGames} MF</div><div class="kpi-sub">~$${(mfGames*state.price).toFixed(2)}/${T('weeks_unit')}</div></div>
+  `;
+
+  const spd=Math.min(5,state.nbGames/5);
+  const stages=[{lg:"Bronze",wk:"0-8",lgs:["Bronze"]},{lg:"Argent",wk:"4-12",lgs:["Bronze","Argent"]},{lg:"Or",wk:"12-25",lgs:["Bronze","Argent","Or"]},{lg:"Platine",wk:"25+",lgs:["Bronze","Argent","Or","Platine"]}];
+  document.getElementById('progression-cards').innerHTML=stages.map(st=>{
+    const c=CL[st.lg];let tMF=0;st.lgs.forEach(l=>{tMF+=gR(l,0);});
+    const adj=st.wk.includes("+")?st.wk:st.wk.split("-").map(w=>Math.max(1,Math.round(parseInt(w)/spd))).join("-");
+    return`<div class="card-hover league-${st.lg}" style="border-radius:var(--radius-lg);padding:20px 24px;border:1px solid ${c.gw}18;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:14px"><span style="font-size:28px;filter:drop-shadow(0 0 8px ${c.gw}40)">${c.ic}</span><div><div style="font-size:18px;font-weight:800;color:${c.tx}">${TL(st.lg)}</div><div style="font-size:11px;color:var(--text-dim)">~${adj} ${T('weeks_unit')} (${state.nbGames} ${T('challenges_unit')})</div></div></div>
+        <div style="text-align:right"><div class="mono" style="font-size:26px;font-weight:800;color:var(--neon)">${Math.round(tMF)} MF<span style="font-size:12px;font-weight:400;color:var(--text-mute)">/${T('weeks_unit')}</span></div><div style="font-size:12px;font-weight:600;color:var(--green)">$${(tMF*state.price).toFixed(2)}/${T('weeks_unit')}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Table + chart
+  let tMF=0,tGB=0,xp=0;const xpG=Math.min(state.stepGoal*.008,60)*5;
+  let rows=[],cL=[],cMF=[],cUSD=[];
+  for(let w=1;w<=52;w++){
+    xp+=xpG*state.nbGames;let lg="Bronze",can=xp>=2000;
+    if(xp>50000)lg="Argent";if(xp>150000)lg="Or";if(xp>400000)lg="Platine";
+    let wMF=0;if(can){const li=LG.indexOf(lg);for(let i=0;i<=li;i++)wMF+=gR(LG[i],0);}
+    tMF+=wMF;tGB+=wb;
+    const cumul=(tMF*state.price)+tGB;
+    if(w%4===0||w===1){cL.push(w===1?'S1':'M'+Math.ceil(w/4.33));cMF.push(Math.round(wMF));cUSD.push(parseFloat(cumul.toFixed(2)));}
+    if(w===1||w%4===0||w===52)rows.push({label:w===1?T('week1'):`${T('month')} ${Math.ceil(w/4.33)}`,lg,can,wMF:Math.round(wMF),wUsd:(wMF*state.price).toFixed(2),bonus:wb.toFixed(2),total:cumul.toFixed(2)});
+  }
+  updateF2PChart(cL,cMF,cUSD);
+
+  document.getElementById('f2p-table').innerHTML=`
+    <thead><tr>${T('table_headers').map((h,i)=>`<th style="text-align:${i>2?'right':'left'}">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((r,i)=>{const c=CL[r.lg];return`<tr${i===0?' style="background:rgba(45,212,191,0.04)"':''}>
+      <td style="text-align:left;font-weight:700">${r.label}</td>
+      <td style="text-align:left;color:${c.tx};font-weight:700">${c.ic} ${TL(r.lg)}</td>
+      <td>${r.can?'✅':'🔒'}</td>
+      <td class="mono" style="text-align:right;color:var(--neon);font-weight:700">${r.wMF||'—'}</td>
+      <td class="mono" style="text-align:right">${r.wMF>0?'$'+r.wUsd:'—'}</td>
+      <td class="mono" style="text-align:right;color:var(--amber)">$${r.bonus}</td>
+      <td class="mono" style="text-align:right;color:var(--green);font-weight:800">$${r.total}</td>
+    </tr>`;}).join('')}</tbody>`;
+}
+
+function updateF2PChart(labels, mfData, usdData) {
+  const ctx = document.getElementById('f2p-chart');
+  if (!ctx) return;
+  if (f2pChart) f2pChart.destroy();
+  // Neon gradient for bars
+  const barGrad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+  barGrad.addColorStop(0, 'rgba(45,212,191,0.4)');
+  barGrad.addColorStop(1, 'rgba(45,212,191,0.05)');
+  // Neon gradient for line fill
+  const lineGrad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+  lineGrad.addColorStop(0, 'rgba(52,211,153,0.2)');
+  lineGrad.addColorStop(1, 'rgba(52,211,153,0)');
+  f2pChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: T('chart_mf'), data: mfData,
+          backgroundColor: barGrad,
+          borderColor: '#2DD4BF',
+          borderWidth: 1.5, borderRadius: 8, yAxisID: 'y', order: 2,
+          hoverBackgroundColor: 'rgba(45,212,191,0.5)'
+        },
+        {
+          label: T('chart_cumul'), data: usdData, type: 'line',
+          borderColor: '#34D399',
+          backgroundColor: lineGrad,
+          fill: true, tension: 0.4,
+          pointRadius: 4, pointBackgroundColor: '#34D399',
+          pointBorderColor: '#040812', pointBorderWidth: 2,
+          pointHoverRadius: 6, pointHoverBackgroundColor: '#5EEAD4',
+          borderWidth: 2.5, yAxisID: 'y1', order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        tooltip: {
+          backgroundColor: 'rgba(4,8,18,0.95)', borderColor: 'rgba(196,212,224,0.08)',
+          borderWidth: 1, padding: 14, cornerRadius: 12,
+          titleFont: { weight: '700' },
+          callbacks: { label: c2 => c2.datasetIndex===1 ? `${c2.dataset.label}: $${c2.parsed.y}` : `${c2.dataset.label}: ${c2.parsed.y} MF` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { position: 'left', grid: { color: 'rgba(196,212,224,0.03)' }, ticks: { callback: v => v + ' MF' }, title: { display: true, text: T('chart_y_mf'), color: '#576B83', font: { size: 10 } } },
+        y1: { position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v }, title: { display: true, text: T('chart_y_cumul'), color: '#576B83', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function rebuildPills(){
+  const sg=document.getElementById('step-goals');sg.innerHTML='';
+  [{s:3000,l:"3K",e:"🚶"},{s:5000,l:"5K",e:"🚶‍♂️"},{s:7500,l:"7.5K",e:"🏃"},{s:10000,l:"10K",e:"🏃‍♂️"},{s:12000,l:"12K",e:"🔥"}].forEach(g=>{
+    sg.innerHTML+=`<button class="pill ${state.stepGoal===g.s?'on':''}" onclick="state.stepGoal=${g.s};updateF2P()">${g.e} ${g.l}</button>`;
+  });
+  const gp=document.getElementById('game-presets');gp.innerHTML='';
+  [5,10,20,40,60,100].forEach(n=>{
+    gp.innerHTML+=`<button class="pill sm ${state.nbGames===n?'on':''}" onclick="state.nbGames=${n};document.getElementById('nb-games').value=${n};updateF2P()">${n}</button>`;
+  });
+  const sb=document.getElementById('stake-btns');sb.innerHTML='';
+  [1,2,5,10,25].forEach(s=>{
+    sb.innerHTML+=`<button class="pill ${state.stakeUSD===s?'on-amber':''}" onclick="state.stakeUSD=${s};updateF2P()">$${s}</button>`;
+  });
+}
+
+// ═══════ SIM ═══════
+function updateSim(){
+  state.price=parseFloat(document.getElementById('price-input').value)||0.013;
+  state.locked=parseInt(document.getElementById('locked-input').value)||0;
+  state.dur=parseInt(document.getElementById('dur-input').value);
+  state.buy=parseInt(document.getElementById('buy-slider').value);
+  const mult=MULTS[state.dur]||2;
+  const weighted=(state.locked+state.buy)*mult;
+  const baseWt=state.locked*mult;
+  const inv=state.buy*state.price;
+
+  document.getElementById('buy-display').innerHTML=`+${fmt(state.buy)} <span style="font-size:22px;font-weight:400;opacity:0.5">MF</span>`;
+  document.getElementById('buy-usd').textContent=`= $${(state.buy*state.price).toFixed(2)}`;
+  document.getElementById('buy-weighted').textContent=`${T('weighted_label')}: ${fmt(weighted)}`;
+  document.getElementById('weighted-display').textContent=fmt(weighted);
+
+  const bp=document.getElementById('buy-presets');bp.innerHTML='';
+  [{l:T('current'),v:0},{l:"+10K",v:10000},{l:"+20K",v:20000},{l:"+35K",v:35000},{l:"+50K",v:50000}].forEach(p=>{
+    bp.innerHTML+=`<button class="pill ${state.buy===p.v?'on':''}" onclick="state.buy=${p.v};document.getElementById('buy-slider').value=${p.v};updateSim()">${p.l}${p.v>0?`<span class="mono" style="display:block;font-size:10px;opacity:.45;margin-top:2px">~$${(p.v*state.price).toFixed(0)}</span>`:''}</button>`;
+  });
+
+  const lb=document.getElementById('league-btns');lb.innerHTML='';
+  LG.forEach(lg=>{
+    const c=CL[lg],on=state.active[lg];
+    lb.innerHTML+=`<button class="pill" style="border-color:${on?c.gw:'var(--border)'};background:${on?c.gw+'15':'transparent'};color:${on?c.tx:'var(--text-ghost)'};opacity:${on?1:.3}" onclick="state.active['${lg}']=!state.active['${lg}'];updateSim()">${c.ic} ${TL(lg)}</button>`;
+  });
+
+  let totalMF=0,totalBase=0;
+  const lr=document.getElementById('league-results');lr.innerHTML='';
+  LG.forEach(lg=>{
+    const ct=gT(weighted,lg),bt=gT(baseWt,lg),c=CL[lg],on=state.active[lg];
+    const r=gR(lg,ct),br=gR(lg,bt),up=ct>bt,d=r-br;
+    if(on)totalMF+=r;
+    if(on)totalBase+=br;
+
+    const tierBars=TH[lg].map((thr,i)=>{
+      const reached=weighted>=thr,was=baseWt>=thr,fresh=reached&&!was;
+      return`<div style="flex:1"><div class="tier-bar" style="background:${fresh?'var(--neon)':reached?c.gw+'55':'rgba(196,212,224,0.04)'};${fresh?'box-shadow:0 0 14px '+c.gw+'50':''}"></div><div class="tier-label" style="color:${reached?c.tx:'var(--text-ghost)'}">T${i+1} ${thr>0?(thr/1000).toFixed(thr<10000?1:0)+'k':'Free'}</div></div>`;
+    }).join('');
+
+    lr.innerHTML+=`<div class="card-hover league-${lg.replace('è','e')}" style="border-radius:var(--radius-lg);padding:20px 24px;border:1px solid ${up?'var(--neon)':on?c.gw+'20':'var(--border-light)'};opacity:${on?1:.2};margin-bottom:14px;${!on?'background:rgba(8,14,28,0.4)':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:24px;filter:drop-shadow(0 0 6px ${c.gw}40)">${c.ic}</span>
+          <span style="font-size:18px;font-weight:800;color:${c.tx}">${TL(lg)}</span>
+          <span class="badge" style="background:${up?'rgba(45,212,191,0.1)':'rgba(196,212,224,0.03)'};color:${up?'var(--neon)':'var(--text-dim)'}">Tier ${ct+1}${up?' ⬆':''}</span>
+          <span class="badge" style="background:var(--amber-dim);color:var(--amber);font-size:10px">XP x${XM[lg][ct]}</span>
+          <span style="font-size:9px;color:var(--text-ghost)">${WK[lg]} ${T('walkers')}</span>
+        </div>
+        <div style="text-align:right">
+          <div class="mono" style="font-size:28px;font-weight:800;color:${on?'var(--neon)':'var(--text-ghost)'}">${on?Math.round(r)+' MF':'—'}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-mute)">${on?'~ $'+(r*state.price).toFixed(2)+'/sem':''}</div>
+          ${on&&up&&d>0?`<div class="mono" style="font-size:12px;color:var(--neon);font-weight:700">+${Math.round(d)} MF</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:14px">${tierBars}</div>
+    </div>`;
+  });
+
+  const gain=totalMF-totalBase;
+  document.getElementById('sim-summary').innerHTML=`
+    <div class="sec">${T('summary')}</div>
+    <div class="grid-3" style="margin-bottom:${state.buy>0?'26px':'0'}">
+      ${[[T('per_week'),totalMF,totalMF*state.price],[T('per_month'),totalMF*4.33,totalMF*state.price*4.33],[T('per_year'),totalMF*52,totalMF*state.price*52]].map(([l,mf,usd])=>`
+        <div class="kpi"><div class="kpi-label">${l}</div><div class="kpi-value" style="color:var(--neon)">${fmt(mf)}</div><div class="kpi-sub">MF</div><div class="mono" style="font-size:14px;font-weight:700;color:var(--green);margin-top:5px">$${usd.toFixed(2)}</div></div>`).join('')}
+    </div>
+    ${state.buy>0?`<div class="glass-light" style="border:1px solid rgba(245,158,11,0.1);background:linear-gradient(135deg,rgba(245,158,11,0.03),rgba(8,14,28,0.6))">
+      <div class="grid-3" style="text-align:center">
+        <div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${T('investment')}</div><div class="mono" style="font-size:24px;font-weight:800;color:var(--amber)">$${inv.toFixed(0)}</div></div>
+        <div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${T('extra_gain')}</div><div class="mono" style="font-size:24px;font-weight:800;color:var(--neon)">+${Math.round(gain)} MF</div></div>
+        <div><div style="font-size:9px;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${T('payback')}</div><div class="mono" style="font-size:24px;font-weight:800;color:var(--purple)">${gain>0?'~'+Math.ceil(inv/(gain*state.price))+' '+T('weeks_unit'):'---'}</div></div>
+      </div>
+    </div>`:''}`;
+
+  const targets=[];
+  LG.forEach(lg=>TH[lg].forEach((th,i)=>{if(!th)return;const d=th-weighted;if(d<=0)return;targets.push({lg,t:i+1,tok:Math.ceil(d/mult),cost:Math.ceil(d/mult)*state.price});}));
+  targets.sort((a,b)=>a.tok-b.tok);
+  const tEl=document.getElementById('sim-targets'),tList=document.getElementById('targets-list');
+  if(targets.length>0){
+    tEl.style.display='block';
+    tList.innerHTML=targets.slice(0,8).map(t=>{const c=CL[t.lg];return`
+      <div class="card-hover" onclick="state.buy=${t.tok};document.getElementById('buy-slider').value=${t.tok};updateSim()" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:rgba(0,0,0,0.2);border-radius:var(--radius-md);cursor:pointer;border:1px solid var(--border);margin-bottom:6px">
+        <span style="font-size:13px;display:flex;align-items:center;gap:8px"><span style="filter:drop-shadow(0 0 4px ${c.gw}40)">${c.ic}</span> <span style="color:${c.tx};font-weight:800">${TL(t.lg)}</span> <span style="color:var(--text-mute)">T${t.t}</span></span>
+        <span class="mono" style="font-size:13px"><span style="color:var(--amber);font-weight:700">+${fmt(t.tok)} MF</span><span style="color:var(--text-ghost);margin-left:10px">($${t.cost.toFixed(0)})</span></span>
+      </div>`;}).join('');
+  } else { tEl.style.display='none'; }
+}
+
+// ═══════ MIGRATION ═══════
+function updateMigration(){
+  state.projWeeks=parseInt(document.getElementById('proj-weeks').value);
+  document.getElementById('proj-weeks-display').textContent=state.projWeeks+' '+T('weeks_full');
+  const sb=document.getElementById('scenario-btns');sb.innerHTML='';
+  [["conservative",T('scenario_conservative')],["moderate",T('scenario_moderate')],["aggressive",T('scenario_aggressive')]].forEach(([k,l])=>{
+    sb.innerHTML+=`<button class="pill ${state.scenario===k?'on':''}" onclick="state.scenario='${k}';updateMigration()">${l}</button>`;
+  });
+  const rates={conservative:{n:.008,m:.012,c:.005},moderate:{n:.015,m:.020,c:.003},aggressive:{n:.03,m:.035,c:.002}}[state.scenario];
+  let c={...WK};const data=[{label:T('now'),...c}];
+  for(let i=1;i<=state.projWeeks;i++){
+    const t=LG.reduce((s,l)=>s+c[l],0);
+    const nx={Bronze:Math.max(100,c.Bronze+Math.round(t*rates.n)-Math.round(c.Bronze*rates.m)-Math.round(c.Bronze*rates.c)),Argent:Math.max(50,c.Argent+Math.round(c.Bronze*rates.m)-Math.round(c.Argent*rates.m*.7)-Math.round(c.Argent*rates.c*.7)),Or:Math.max(30,c.Or+Math.round(c.Argent*rates.m*.7)-Math.round(c.Or*rates.m*.5)-Math.round(c.Or*rates.c*.5)),Platine:Math.max(20,c.Platine+Math.round(c.Or*rates.m*.5)-Math.round(c.Platine*rates.m*.35)-Math.round(c.Platine*rates.c*.3)),Diamant:Math.max(10,c.Diamant+Math.round(c.Platine*rates.m*.35)-Math.round(c.Diamant*rates.m*.2)-Math.round(c.Diamant*rates.c*.2)),"Tungstène":Math.max(5,c["Tungstène"]+Math.round(c.Diamant*rates.m*.2))};
+    const mo=Math.floor(i/4.33),ms=T('months');
+    if(i%4===0||i===state.projWeeks)data.push({label:ms[Math.min(mo,ms.length-1)]+" 26",...nx});
+    c=nx;
+  }
+  updateMigChart(data);
+  document.getElementById('mig-table').innerHTML=`
+    <thead><tr><th>Période</th>${LG.map(l=>`<th style="color:${CL[l].tx}">${CL[l].ic}</th>`).join('')}<th>Total</th></tr></thead>
+    <tbody>${data.map((s,i)=>`<tr${i===0?' style="background:rgba(45,212,191,0.04)"':''}>
+      <td style="font-weight:700;color:${i===0?'var(--neon)':'var(--text-dim)'}">${s.label}</td>
+      ${LG.map(l=>`<td class="mono">${fmt(s[l])}</td>`).join('')}
+      <td class="mono" style="font-weight:700">${fmt(LG.reduce((sum,l)=>sum+s[l],0))}</td>
+    </tr>`).join('')}</tbody>`;
+}
+
+function updateMigChart(data) {
+  const ctx = document.getElementById('mig-chart');
+  if (!ctx) return;
+  if (migChart) migChart.destroy();
+  const colors = { Bronze:'#D97706', Argent:'#94A3B8', Or:'#EAB308', Platine:'#38BDF8', Diamant:'#A78BFA', "Tungstène":'#EF4444' };
+  migChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: LG.map(lg => ({
+        label: TL(lg), data: data.map(d => d[lg]),
+        borderColor: colors[lg], backgroundColor: colors[lg]+'15',
+        fill: false, tension: 0.35,
+        pointRadius: 4, pointBackgroundColor: colors[lg],
+        pointBorderColor: '#040812', pointBorderWidth: 2,
+        pointHoverRadius: 6, borderWidth: 2.5,
+        segment: { borderColor: ctx2 => colors[lg] }
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        tooltip: { backgroundColor: 'rgba(4,8,18,0.95)', borderColor: 'rgba(196,212,224,0.08)', borderWidth: 1, padding: 14, cornerRadius: 12, titleFont: { weight: '700' } }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(196,212,224,0.03)' }, ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(1)+'K' : v } }
+      }
+    }
+  });
+}
+
+// ═══════ INIT ═══════
+initF2P();
+updateSim();
+updateMigration();
+</script>
+</body>
+</html>
